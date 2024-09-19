@@ -23,7 +23,7 @@ image(volcano, col = viridis(200, option = "A"))
 
 ## AUTHORIZE ACCOUNT
 ```{r}
-rsconnect::setAccountInfo(name='fmrd2e-anthokyoo', token='3AEAAAFBC31A3D9D3304A5EB67EDBFFD', secret='8FbP1YBWOkAYiJfqxRm0PC/CdSz5nSyKgA7GhNGZ')
+rsconnect::setAccountInfo(name='fmrd2e-anthokyoo', token='3AEAAAFBC31A3D9D3304A5EB67EDBFFD', secret='What did u think?')
 ```
 
 ## DEPLOY
