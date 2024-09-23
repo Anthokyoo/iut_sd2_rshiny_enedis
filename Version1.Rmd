@@ -7,6 +7,7 @@ output:
 runtime: shiny
 ---
 
+
 ```{r setup, include=FALSE}
 library(shiny)
 library(dplyr)
@@ -50,13 +51,6 @@ ggplot(df_repartition, aes(x="", y=count, fill=logement)) +
   theme_void() +
   scale_fill_manual(values=c("neufs" = "#00BFC4", "anciens" = "#F8766D"))
 
-# Graphique de distribution des prix (selon le type de logement)
-ggplot(df, aes(x=logement, y=prix, fill=logement)) +
-  geom_boxplot() +
-  labs(title="Distribution des Prix par Type de Logement", x="Type de Logement", y="Prix") +
-  scale_fill_manual(values=c("neufs" = "#00BFC4", "anciens" = "#F8766D")) +
-  theme_minimal()
-
 # Tableau récapitulatif des données
 datatable(df, options = list(pageLength = 10, autoWidth = TRUE))
 
@@ -78,3 +72,4 @@ output$table <- DT::renderDataTable({
 })
 
 DT::dataTableOutput("table")
+```

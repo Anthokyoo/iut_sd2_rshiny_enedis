@@ -1,0 +1,109 @@
+---
+title: "Test"
+output: html_document
+---
+
+```{r include = FALSE}
+library(shiny)
+library(dplyr)
+library(ggplot2)
+library(DT)
+library(flexdashboard)
+getwd()
+
+existants = read.csv(file = "dpe-v2-logements-existants.csv", header = TRUE, sep = ",", dec = ".")
+neufs = read.csv(file = "dpe-v2-logements-neufs.csv", header = TRUE, sep = ",", dec = ".")
+
+dim(existants)
+dim(neufs)
+
+existants$logement = "anciens"
+neufs$logement = "neufs"
+neufs$Année_construction = 2024
+
+col_communes = intersect(colnames(existants), colnames(neufs))
+df = rbind(existants[ , col_communes], neufs[ , col_communes])
+
+df$`Date_réception_DPE` <- as.Date(df$`Date_réception_DPE`, format="%Y-%m-%d")
+
+df$`Année DPE` <- format(df$`Date_réception_DPE`, "%Y")
+
+df$Somme_Couts <- df$Coût_chauffage + df$Coût_éclairage + df$Coût_ECS + df$Coût_refroidissement + df$Coût_auxiliaires
+
+df$Verif_Cout_total <- df$Coût_total_5_usages == df$Somme_Couts
+
+df$Verif_Cout_total <- as.logical(df$Verif_Cout_total)
+
+df$`Coût chauffage en %` <- (df$Coût_chauffage / df$Coût_total_5_usages) * 100
+
+df$`Coût chauffage en %`[is.infinite(df$`Coût chauffage en %`)] <- 0
+df$`Coût chauffage en %`[is.na(df$`Coût chauffage en %`)] <- 0
+df$`Coût chauffage en %` <- round(df$`Coût chauffage en %`, 2)
+
+intervals <- c(-Inf, 1960, 1970, 1980, 1990, 2000, 2010, Inf)
+labels <- c("Avant 1960", "1961 - 1970", "1971 - 1980", "1981 - 1990", "1991 - 2000", "2001 - 2010", "Après 2010")
+df$Periode_construction <- cut(df$Année_construction, 
+                               breaks = intervals, 
+                               labels = labels, 
+                               right = TRUE)
+
+# Calcul des KPI
+total_logements <- nrow(df)
+logements_neufs <- df %>% filter(logement == "neufs") %>% nrow()
+logements_anciens <- df %>% filter(logement == "anciens") %>% nrow()
+
+# Pourcentages
+percent_neufs <- round((logements_neufs / total_logements) * 100, 2)
+percent_anciens <- round((logements_anciens / total_logements) * 100, 2)
+
+# Affichage des KPI
+valueBox(
+  value = total_logements, 
+  caption = "Total Logements"
+)
+valueBox(
+  value = paste0(percent_neufs, "%"), 
+  caption = "Logements Neufs"
+)
+valueBox(
+  value = paste0(percent_anciens, "%"), 
+  caption = "Logements Anciens"
+)
+
+# Répartition des logements
+df_repartition <- df %>% 
+  group_by(logement) %>% 
+  summarise(count = n())
+
+# Graphique en camembert
+ggplot(df_repartition, aes(x="", y=count, fill=logement)) +
+  geom_bar(stat="identity", width=1) +
+  coord_polar("y") +
+  labs(title="Répartition des Logements", x=NULL, y=NULL) +
+  theme_void() +
+  scale_fill_manual(values=c("neufs" = "#00BFC4", "anciens" = "#F8766D"))
+
+# Tableau récapitulatif des données
+datatable(df, options = list(pageLength = 10, autoWidth = TRUE))
+
+# Filtre pour les logements
+selectInput("logement_type", "Choisissez le type de logement", 
+            choices = c("Tous" = "all", "Neufs" = "neufs", "Anciens" = "anciens"))
+
+filtered_data <- reactive({
+  if (input$logement_type == "all") {
+    df
+  } else {
+    df %>% filter(logement == input$logement_type)
+  }
+})
+
+# Tableau récapitulatif avec filtre
+output$table <- DT::renderDataTable({
+  datatable(filtered_data(), options = list(pageLength = 10))
+})
+
+DT::dataTableOutput("table")
+
+View(df)
+```

@@ -5,7 +5,7 @@ dataset <- diamonds
 
 fluidPage(
 
-  titlePanel("Diamonds Explorer"),
+  titlePanel("RShiny Energy Insights : Optimisation des Consommations Électriques"),
 
   sidebarPanel(
 
