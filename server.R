@@ -1,82 +1,66 @@
-library(shiny)
+install.packages("ggplot2")
+install.packages("httr")
+install.packages("jsonlite")
 library(ggplot2)
+library(httr)
+library(jsonlite)
 
 function(input, output) {
 
-  setwd("C:/Users/umirandasenra/Documents/iut_sd2_rshiny_enedis")
+  setwd("C:/Users/ycharrade/Documents/iut_sd2_rshiny_enedis")
   adresse = read.csv(file = "adresses-73.csv", header = TRUE, sep = ";", dec = ".")
-
-  library(httr)
-  library(jsonlite)
-
-    base_url <- "https://data.ademe.fr/datasets/dpe-v2-logements-neufs/api-doc"
-    code_postal = "73*"
-
-    # Initialisation des paramètres de requête
-    size <- 1000   # Taille des paquets (limite de 10 000 par page * size)
-    page <- 1      # Pagination
-    df_neufs <- data.frame()  # Dataframe pour stocker les résultats
-
-    repeat {
+  base_url <- "https://data.ademe.fr/data-fair/api/v1/datasets/dpe-v2-logements-existants/lines"
+  code_postal = "69008"
+  
+  # Initialisation des paramètres de requête
+  size <- 10000   # Taille des paquets
+  df_neufs <- data.frame()  # Dataframe pour stocker les résultats
+  Date = 2021 #filtrer a partir de la dae pour contourner le page*size
+  repeat {
     # Paramètres de la requête
     params <- list(
-      page = page,
+      page = 1,
       size = size,
       select = "N°DPE,Etiquette_DPE,Date_réception_DPE",
       q = code_postal,
       q_fields = "Code_postal_(BAN)",
-      qs = ""
+      qs = paste0("Date_réception_DPE:[",Date,"-01-01 TO ",Date,"-12-31]")
     )
-
+    
     # Encodage des paramètres
     url_encoded <- modify_url(base_url, query = params)
     print(url_encoded)
-
+    
     # Effectuer la requête
     response <- GET(url_encoded)
-
+    
     # Vérifier le statut de la réponse
     if (status_code(response) != 200) {
       stop("Erreur dans la requête : ", status_code(response))
     }
-
+    
     # On convertit le contenu brut (octets) en une chaîne de caractères (texte). Cela permet de transformer les données reçues de l'API, qui sont généralement au format JSON, en une chaîne lisible par R
     content = fromJSON(rawToChar(response$content), flatten = FALSE)
-
+    
     # Récupérer les données pour la page actuelle
     data <- content$result
-
+    print(content$total)
     # Ajouter les données récupérées à l'ensemble complet
-    df_neufs <- rbind(all_data, data)
-
-    # Si la page contient moins de résultats que la taille demandée, on sort de la boucle
-    if (nrow(data) < size) {
-      break
-    }
-
-    # Incrémenter la page pour la prochaine requête
-    page <- page + 1
-
-    # Pause après chaque 600 requêtes pour respecter les limitations de l'API
-    if (page %% 600 == 0) {
-      Sys.sleep(60)  # Pause de 60 secondes
-    }
-    }
-    # Afficher les données complètes récupérées
-    print(df_neufs)
-
+    df_neufs <- rbind(df_neufs, data)
     
-#df_existant à faire !!!
-  base_url <- "https://data.ademe.fr/datasets/dpe-v2-logements-existants/api-doc"
+    
+  df_existant <- data.frame()
+  #df_existant à faire !!! ---> il est terminé
+  base_url <- "https://data.ademe.fr/data-fair/api/v1/datasets/dpe-v2-logements-neufs/lines"
   
   # Paramètres de la requête
   params <- list(
-    page = 
-    size = 
+    page = page,
+    size = size,
     select = "N°DPE,Etiquette_DPE,Date_réception_DPE",
     q = code_postal,
     q_fields = "Code_postal_(BAN)",
-    qs = ""
+    qs = paste0("Date_réception_DPE:[",Date,"-01-01 TO ",Date,"-12-31]")
   ) 
   
   # Encodage des paramètres
@@ -86,16 +70,37 @@ function(input, output) {
   # Effectuer la requête
   response <- GET(url_encoded)
   
-  # Afficher le statut de la réponse
-  print(status_code(response))
+  # Vérifier le statut de la réponse
+  if (status_code(response) != 200) {
+    stop("Erreur dans la requête : ", status_code(response))
+  }
   
   # On convertit le contenu brut (octets) en une chaîne de caractères (texte). Cela permet de transformer les données reçues de l'API, qui sont généralement au format JSON, en une chaîne lisible par R
   content = fromJSON(rawToChar(response$content), flatten = FALSE)
   
+  # Récupérer les données pour la page actuelle
+  data <- content$result
   # Afficher le nombre total de ligne dans la base de données
   print(content$total)
+  # Ajouter les données récupérées à l'ensemble complet
+  df_existants <- rbind(df_neufs, data)
   
+  #Incrémenter la date 
+  Date <- Date+1
+  
+  if (Date == 2025){
+    break
+  }
+  
+  # Pause après chaque 600 requêtes pour respecter les limitations de l'API
+  if (Date %% 600 == 0) {
+    Sys.sleep(60)  # Pause de 60 secondes
+  }
   # Afficher les données récupérées
   df_existants <- content$result
-
+  }
+  # Afficher les données complètes récupérées des logements existants
+  print(df_existants)
+  # Afficher les données complètes récupérées des logements neufs
+  print(df_neufs)
 }
