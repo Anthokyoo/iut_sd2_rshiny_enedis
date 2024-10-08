@@ -1,29 +1,26 @@
+install.packages("shiny")
+install.packages("httr")
 library(shiny)
-library(ggplot2)
+library(httr)
 
-dataset <- diamonds
-
-fluidPage(
-
-  titlePanel("Diamonds Explorer"),
-
-  sidebarPanel(
-
-    sliderInput('sampleSize', 'Sample Size', min=1, max=nrow(dataset),
-                value=min(1000, nrow(dataset)), step=500, round=0),
-
-    selectInput('x', 'X', names(dataset)),
-    selectInput('y', 'Y', names(dataset), names(dataset)[[2]]),
-    selectInput('color', 'Color', c('None', names(dataset))),
-
-    checkboxInput('jitter', 'Jitter'),
-    checkboxInput('smooth', 'Smooth'),
-
-    selectInput('facet_row', 'Facet Row', c(None='.', names(dataset))),
-    selectInput('facet_col', 'Facet Column', c(None='.', names(dataset)))
-  ),
-
-  mainPanel(
-    plotOutput('plot')
+# Interface utilisateur
+ui <- fluidPage(
+  titlePanel("Affichage des Logements"),
+ 
+  sidebarLayout(
+    sidebarPanel(
+      h4("Tableaux des Logements"),
+      p("Ci-dessous se trouvent les données des logements existants et neufs pour le code postal 73."),
+      hr()
+    ),
+    
+    mainPanel(
+      h3("Données des Logements Existants"),
+      tableOutput("table_existants"),
+      h3("Données des Logements Neufs"),
+      tableOutput("table_neufs")
+    )
   )
 )
+
+shinyApp(ui = ui, server = server)

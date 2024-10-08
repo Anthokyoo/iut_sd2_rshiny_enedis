@@ -5,12 +5,12 @@ library(ggplot2)
 library(httr)
 library(jsonlite)
 
-function(input, output) {
+server <- function(input, output) {
 
-  setwd("C:/Users/ycharrade/Documents/iut_sd2_rshiny_enedis")
+  #setwd("C:/Users/ycharrade/Documents/iut_sd2_rshiny_enedis")
   adresse = read.csv(file = "adresses-73.csv", header = TRUE, sep = ";", dec = ".")
   base_url <- "https://data.ademe.fr/data-fair/api/v1/datasets/dpe-v2-logements-existants/lines"
-  code_postal = "69008"
+  code_postal = "73*"
   
   # Initialisation des paramètres de requête
   size <- 10000   # Taille des paquets
@@ -39,7 +39,7 @@ function(input, output) {
       stop("Erreur dans la requête : ", status_code(response))
     }
     
-    # On convertit le contenu brut (octets) en une chaîne de caractères (texte). Cela permet de transformer les données reçues de l'API, qui sont généralement au format JSON, en une chaîne lisible par R
+    # Convertir du json au char
     content = fromJSON(rawToChar(response$content), flatten = FALSE)
     
     # Récupérer les données pour la page actuelle
@@ -55,7 +55,7 @@ function(input, output) {
   
   # Paramètres de la requête
   params <- list(
-    page = page,
+    page = 1,
     size = size,
     select = "N°DPE,Etiquette_DPE,Date_réception_DPE",
     q = code_postal,
@@ -103,4 +103,14 @@ function(input, output) {
   print(df_existants)
   # Afficher les données complètes récupérées des logements neufs
   print(df_neufs)
+  # Rendre le tableau pour df_existants
+  output$table_existants <- renderTable({
+    df_existants
+  })
+  
+  # Rendre le tableau pour df_neufs
+  output$table_neufs <- renderTable({
+    df_neufs
+  })
 }
+
