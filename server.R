@@ -5,17 +5,21 @@ library(ggplot2)
 library(httr)
 library(jsonlite)
 
-server <- function(input, output) {
+server <- function(input, output, session) {
 
   #setwd("C:/Users/ycharrade/Documents/iut_sd2_rshiny_enedis")
   adresse = read.csv(file = "adresses-73.csv", header = TRUE, sep = ";", dec = ".")
-  base_url <- "https://data.ademe.fr/data-fair/api/v1/datasets/dpe-v2-logements-existants/lines"
+  
   code_postal = "73*"
   
   # Initialisation des paramètres de requête
   size <- 10000   # Taille des paquets
-  df_neufs <- data.frame()  # Dataframe pour stocker les résultats
-  Date = 2021 #filtrer a partir de la dae pour contourner le page*size
+  df_existants <- data.frame()  # Dataframe pour stocker les résultats des logements existants
+  df_neufs <- data.frame() # Dataframe pour stocker les résultats des logements neufs
+  Date_existants = 2021 #filtrer a partir de la dae pour contourner le page*size
+  Date_neufs = 2021
+  base_url_existants <- "https://data.ademe.fr/data-fair/api/v1/datasets/dpe-v2-logements-existants/lines"
+  base_url_neufs <- "https://data.ademe.fr/data-fair/api/v1/datasets/dpe-v2-logements-neufs/lines"
   repeat {
     # Paramètres de la requête
     params <- list(
@@ -24,12 +28,11 @@ server <- function(input, output) {
       select = "N°DPE,Etiquette_DPE,Date_réception_DPE",
       q = code_postal,
       q_fields = "Code_postal_(BAN)",
-      qs = paste0("Date_réception_DPE:[",Date,"-01-01 TO ",Date,"-12-31]")
+      qs = paste0("Date_réception_DPE:[",Date_existants,"-01-01 TO ",Date_existants,"-12-31]")
     )
     
     # Encodage des paramètres
-    url_encoded <- modify_url(base_url, query = params)
-    print(url_encoded)
+    url_encoded <- modify_url(base_url_existants, query = params)
     
     # Effectuer la requête
     response <- GET(url_encoded)
@@ -44,15 +47,18 @@ server <- function(input, output) {
     
     # Récupérer les données pour la page actuelle
     data <- content$result
-    print(content$total)
+    
     # Ajouter les données récupérées à l'ensemble complet
-    df_neufs <- rbind(df_neufs, data)
+    df_existants <- rbind(df_existants, data)
     
-    
-  df_existant <- data.frame()
+    Date_existants <- Date_existants + 1
+  if (Date_existants == 2030){
+    break
+  }
+}
   #df_existant à faire !!! ---> il est terminé
-  base_url <- "https://data.ademe.fr/data-fair/api/v1/datasets/dpe-v2-logements-neufs/lines"
   
+  repeat {
   # Paramètres de la requête
   params <- list(
     page = 1,
@@ -60,12 +66,11 @@ server <- function(input, output) {
     select = "N°DPE,Etiquette_DPE,Date_réception_DPE",
     q = code_postal,
     q_fields = "Code_postal_(BAN)",
-    qs = paste0("Date_réception_DPE:[",Date,"-01-01 TO ",Date,"-12-31]")
+    qs = paste0("Date_réception_DPE:[",Date_neufs,"-01-01 TO ",Date_neufs,"-12-31]")
   ) 
   
   # Encodage des paramètres
-  url_encoded <- modify_url(base_url, query = params)
-  print(url_encoded)
+  url_encoded <- modify_url(base_url_neufs, query = params)
   
   # Effectuer la requête
   response <- GET(url_encoded)
@@ -80,37 +85,28 @@ server <- function(input, output) {
   
   # Récupérer les données pour la page actuelle
   data <- content$result
-  # Afficher le nombre total de ligne dans la base de données
-  print(content$total)
+
   # Ajouter les données récupérées à l'ensemble complet
-  df_existants <- rbind(df_neufs, data)
+  df_neufs <- rbind(df_neufs, data)
   
   #Incrémenter la date 
-  Date <- Date+1
+  Date_neufs <- Date_neufs+1
   
-  if (Date == 2025){
+  if (Date_neufs == 2030){
     break
   }
-  
-  # Pause après chaque 600 requêtes pour respecter les limitations de l'API
-  if (Date %% 600 == 0) {
-    Sys.sleep(60)  # Pause de 60 secondes
   }
-  # Afficher les données récupérées
-  df_existants <- content$result
-  }
-  # Afficher les données complètes récupérées des logements existants
-  print(df_existants)
-  # Afficher les données complètes récupérées des logements neufs
-  print(df_neufs)
-  # Rendre le tableau pour df_existants
-  output$table_existants <- renderTable({
-    df_existants
+  output$velov_map <- renderLeaflet({
+    leaflet() %>%
+      addTiles() %>%
+      addMarkers(lng = 5.9162, lat = 45.6884, popup = "Aix-Les-Bains Center") %>%
+      setView(lng = 5.9162, lat = 45.6884, zoom = 12)
   })
   
-  # Rendre le tableau pour df_neufs
-  output$table_neufs <- renderTable({
-    df_neufs
+  # Refresh button logic
+  observeEvent(input$refresh, {
+    showNotification("Les données ont été rafraîchies", type = "message")
   })
 }
 
+shinyApp(ui = ui, server = server)
