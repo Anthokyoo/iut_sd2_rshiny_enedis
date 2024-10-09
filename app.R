@@ -1,4 +1,4 @@
-install.packages('shiny','leaflet','shinydashboard','httr','jsonlite')
+#install.packages('shiny','leaflet','shinydashboard','httr','jsonlite')
 library(shiny)
 library(leaflet)
 library(shinydashboard)
@@ -69,7 +69,7 @@ server <- function(input, output, session) {
     params <- list(
       page = 1,
       size = size,
-      select = "N°DPE,Etiquette_DPE,Date_réception_DPE,Coordonnée_cartographique_Y_(BAN),Coordonnée_cartographique_X_(BAN)",
+      select = "N°DPE,Etiquette_DPE,Date_réception_DPE,Coordonnée_cartographique_Y_(BAN),Coordonnée_cartographique_X_(BAN),Identifiant__BAN",
       q = code_postal,
       q_fields = "Code_postal_(BAN)",
       qs = paste0("Date_réception_DPE:[",Date_existants,"-01-01 TO ",Date_existants,"-12-31]")
@@ -108,7 +108,7 @@ server <- function(input, output, session) {
     params <- list(
       page = 1,
       size = size,
-      select = "N°DPE,Etiquette_DPE,Date_réception_DPE,Coordonnée_cartographique_Y_(BAN),Coordonnée_cartographique_X_(BAN)",
+      select = "N°DPE,Etiquette_DPE,Date_réception_DPE,Coordonnée_cartographique_Y_(BAN),Coordonnée_cartographique_X_(BAN),Identifiant__BAN",
       q = code_postal,
       q_fields = "Code_postal_(BAN)",
       qs = paste0("Date_réception_DPE:[",Date_neufs,"-01-01 TO ",Date_neufs,"-12-31]")
@@ -145,7 +145,8 @@ server <- function(input, output, session) {
   
   df_existants$type_logement = "Existant"
   df_neufs$type_logement = "Neufs"
-  df_logement = rbind(df_existants,df_neufs,)
+  df_logement = rbind(df_existants,df_neufs)
+  
   
   # Ajout des points des logements sur la carte
   output$Savoie_map <- renderLeaflet({

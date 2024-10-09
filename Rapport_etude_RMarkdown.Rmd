@@ -7,24 +7,91 @@ output: word_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(httr)
+library(jsonlite)
+library(dplyr)
 ```
 
-## R Markdown
+#Extraction des données logements
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+##Récupération des logements Existants
+```{r}
+code_postal <- "73*"
+size <- 10000  # Taille des paquets
+df_existants <- data.frame()  # Dataframe pour stocker les résultats des logements existants
+Date_existants <- 2021  # Filtrer à partir de cette date
+base_url_existants <- "https://data.ademe.fr/data-fair/api/v1/datasets/dpe-v2-logements-existants/lines"
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+repeat {
+  params <- list(
+    page = 1,
+    size = size,
+    select = "N°DPE,Etiquette_DPE,Date_réception_DPE,Coordonnée_cartographique_Y_(BAN),Coordonnée_cartographique_X_(BAN),Identifiant__BAN",
+    q = code_postal,
+    q_fields = "Code_postal_(BAN)",
+    qs = paste0("Date_réception_DPE:[", Date_existants, "-01-01 TO ", Date_existants, "-12-31]")
+  )
+  
+  url_encoded <- modify_url(base_url_existants, query = params)
+  response <- GET(url_encoded)
+  
+  if (status_code(response) != 200) {
+    stop("Erreur dans la requête : ", status_code(response))
+  }
+  
+  content <- fromJSON(rawToChar(response$content), flatten = FALSE)
+  data <- content$result
+  df_existants <- rbind(df_existants, data)
+  
+  Date_existants <- Date_existants + 1
+  if (Date_existants == 2030) break
+  
+  Sys.sleep(1)  # Pause de 1 seconde entre les requêtes
+}
+df_existants$type_logement <- "Existant"
 ```
 
-## Including Plots
+##Récupération des logements neufs
 
-You can also embed plots, for example:
+```{r}
+df_neufs <- data.frame()  # Dataframe pour stocker les résultats des logements neufs
+Date_neufs <- 2021
+base_url_neufs <- "https://data.ademe.fr/data-fair/api/v1/datasets/dpe-v2-logements-neufs/lines"
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+repeat {
+  params <- list(
+    page = 1,
+    size = size,
+    select = "N°DPE,Etiquette_DPE,Date_réception_DPE,Coordonnée_cartographique_Y_(BAN),Coordonnée_cartographique_X_(BAN),Identifiant__BAN",
+    q = code_postal,
+    q_fields = "Code_postal_(BAN)",
+    qs = paste0("Date_réception_DPE:[", Date_neufs, "-01-01 TO ", Date_neufs, "-12-31]")
+  )
+  
+  url_encoded <- modify_url(base_url_neufs, query = params)
+  response <- GET(url_encoded)
+  
+  if (status_code(response) != 200) {
+    stop("Erreur dans la requête : ", status_code(response))
+  }
+  
+  content <- fromJSON(rawToChar(response$content), flatten = FALSE)
+  data <- content$result
+  df_neufs <- rbind(df_neufs, data)
+  
+  Date_neufs <- Date_neufs + 1
+  if (Date_neufs == 2030) break
+  
+  Sys.sleep(1)  # Pause de 1 seconde entre les requêtes
+}
+df_neufs$type_logement <- "Neufs"
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+#Fusion des données
+
+```{r}
+df_logement <- rbind(df_existants, df_neufs)
+
+# Affichage d'un aperçu des données combinées
+head(df_logement)
+```
