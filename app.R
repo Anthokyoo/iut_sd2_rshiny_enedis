@@ -1,4 +1,4 @@
-#install.packages('shiny','leaflet','shinydashboard','httr','jsonlite')
+#install.packages(c('shiny', 'leaflet', 'shinydashboard', 'httr', 'jsonlite'))
 library(shiny)
 library(leaflet)
 library(shinydashboard)
@@ -9,8 +9,8 @@ library(jsonlite)
 ui <- dashboardPage(
   dashboardHeader(
     title = tags$div(
-      tags$img(src = "C:/Users/antho/Documents/73 Logement.png", height = '40px'),
-      "Logements neufs"
+      #tags$img(src = "C:/Users/antho/Documents/73 Logement.png", height = '40px'),
+      "Logements du 73"
     )
   ),
   dashboardSidebar(
@@ -79,7 +79,7 @@ server <- function(input, output, session) {
     url_encoded <- modify_url(base_url_existants, query = params)
     
     # Effectuer la requête
-    response <- GET(url_encoded)
+    response <- GET(url_encoded, timeout(60))
     
     # Vérifier le statut de la réponse
     if (status_code(response) != 200) {
@@ -99,7 +99,7 @@ server <- function(input, output, session) {
     if (Date_existants == 2030){
       break
     }
-    Sys.sleep(1)  # Pause de 1 seconde entre les requêtes
+    Sys.sleep(2)  # Pause de 1 seconde entre les requêtes
   }
   #df_existant à faire !!! ---> il est terminé
   
@@ -118,7 +118,7 @@ server <- function(input, output, session) {
     url_encoded <- modify_url(base_url_neufs, query = params)
     
     # Effectuer la requête
-    response <- GET(url_encoded)
+    response <- GET(url_encoded, timeout(60))
     
     # Vérifier le statut de la réponse
     if (status_code(response) != 200) {
@@ -140,7 +140,7 @@ server <- function(input, output, session) {
     if (Date_neufs == 2030){
       break
     }
-    Sys.sleep(1)  # Pause de 1 seconde entre les requêtes
+    Sys.sleep(2)  # Pause de 1 seconde entre les requêtes
   }
   
   df_existants$type_logement = "Existant"
