@@ -92,6 +92,33 @@ df_neufs$type_logement <- "Neufs"
 ```{r}
 df_logement <- rbind(df_existants, df_neufs)
 
-# Affichage d'un aperçu des données combinées
 head(df_logement)
+```
+#KPI
+
+##Répartition des logements existants/neufs
+
+```{r}
+kpi_type <- df_logement %>% 
+  group_by(type_logement) %>% 
+  summarise(count = n())
+
+ggplot(kpi_type, aes(x = type_logement, y = count, fill = type_logement)) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  labs(title = "Répartition des logements par type", y = "Nombre de logements", x = "")
+```
+
+##Distribution des étiquettes DPE
+
+```{r}
+kpi_dpe <- df_logement %>% 
+  group_by(Etiquette_DPE) %>% 
+  summarise(count = n()) %>% 
+  arrange(desc(count))
+
+ggplot(kpi_dpe, aes(x = reorder(Etiquette_DPE, -count), y = count, fill = Etiquette_DPE)) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  labs
 ```
