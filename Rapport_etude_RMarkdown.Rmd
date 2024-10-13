@@ -2,8 +2,14 @@
 title: "Rapport d'étude RMarkdown"
 author: "Anthony et Lucas"
 date: "2024-09-20"
-output: word_document
+output:
+  html_document:
+    df_print: paged
+params:
+  code_postal: 73*
+  type_logement: les deux
 ---
+*Le Rmarkdown présenté ci-dessous représente une automatisation du code Rshiny sur le web qui permet de choisir son code postal et son type de logement dans les paramètres juste au dessus, ce document permet de voir quelques KPI, graphiques et statistiques bivariés entre les informations qui sont mis à disposition par l'API du site de l'Etat.*
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -13,96 +19,111 @@ library(dplyr)
 library(ggplot2)
 ```
 
-#Extraction des données logements
+# Extraction des données logements
 
-##Récupération des logements Existants
 ```{r include=TRUE}
-code_postal <- "73*"
+code_postal <- params$code_postal
+type_logement <- params$type_logement
 size <- 10000  # Taille des paquets
-df_existants <- data.frame()  # Dataframe pour stocker les résultats des logements existants
-Date_existants <- 2021  # Filtrer à partir de cette date
-base_url_existants <- "https://data.ademe.fr/data-fair/api/v1/datasets/dpe-v2-logements-existants/lines"
 
-repeat {
-  params <- list(
-    page = 1,
-    size = size,
-    select = "N°DPE,Etiquette_DPE,Date_réception_DPE,Coordonnée_cartographique_Y_(BAN),Coordonnée_cartographique_X_(BAN),Identifiant__BAN,Année_construction,Type_bâtiment,Type_installation_chauffage,Surface_habitable_logement,Qualité_isolation_murs",
-    q = code_postal,
-    q_fields = "Code_postal_(BAN)",
-    qs = paste0("Date_réception_DPE:[", Date_existants, "-01-01 TO ", Date_existants, "-12-31]")
-  )
+# Créer des dataframes vides pour stocker les résultats
+df_existants <- data.frame()
+df_neufs <- data.frame()
+
+# Récupération des logements existants si le type sélectionné est "ancien" ou "les deux"
+if (type_logement == "ancien" || type_logement == "les deux") {
+  Date_existants <- 2021  #Avant 2021 il n'y a pas de data dans l'API
+  base_url_existants <- "https://data.ademe.fr/data-fair/api/v1/datasets/dpe-v2-logements-existants/lines"
   
-  url_encoded <- modify_url(base_url_existants, query = params)
-  response <- GET(url_encoded)
-  
-  if (status_code(response) != 200) {
-    stop("Erreur dans la requête : ", status_code(response))
+  repeat {
+    params_existants <- list(
+      page = 1,
+      size = size,
+      select = "N°DPE,Etiquette_DPE,Date_réception_DPE,Coordonnée_cartographique_Y_(BAN),Coordonnée_cartographique_X_(BAN),Identifiant__BAN,Année_construction,Type_bâtiment,Type_installation_chauffage,Surface_habitable_logement",
+      q = code_postal,
+      q_fields = "Code_postal_(BAN)",
+      qs = paste0("Date_réception_DPE:[", Date_existants, "-01-01 TO ", Date_existants, "-12-31]")
+    )
+    
+    url_encoded_existants <- modify_url(base_url_existants, query = params_existants)
+    response_existants <- GET(url_encoded_existants)
+    
+    if (status_code(response_existants) != 200) {
+      stop("Erreur dans la requête : ", status_code(response_existants))
+    }
+    
+    content_existants <- fromJSON(rawToChar(response_existants$content), flatten = FALSE)
+    data_existants <- content_existants$result
+    df_existants <- rbind(df_existants, data_existants)
+    
+    Date_existants <- Date_existants + 1
+    if (Date_existants == 2030) break
+    
+    Sys.sleep(1)
   }
   
-  content <- fromJSON(rawToChar(response$content), flatten = FALSE)
-  data <- content$result
-  df_existants <- rbind(df_existants, data)
-  
-  Date_existants <- Date_existants + 1
-  if (Date_existants == 2030) break
-  
-  Sys.sleep(1)  # Pause de 1 seconde entre les requêtes
+  df_existants$type_logement <- "Existant"
 }
-df_existants$type_logement <- "Existant"
-```
 
-##Récupération des logements neufs
-
-```{r include=TRUE}
-df_neufs <- data.frame()  # Dataframe pour stocker les résultats des logements neufs
-Date_neufs <- 2021
-base_url_neufs <- "https://data.ademe.fr/data-fair/api/v1/datasets/dpe-v2-logements-neufs/lines"
-
-repeat {
-  params <- list(
-    page = 1,
-    size = size,
-    select = "N°DPE,Etiquette_DPE,Date_réception_DPE,Coordonnée_cartographique_Y_(BAN),Coordonnée_cartographique_X_(BAN),Identifiant__BAN,Type_bâtiment,Type_installation_chauffage,Surface_habitable_logement,Qualité_isolation_murs",
-    q = code_postal,
-    q_fields = "Code_postal_(BAN)",
-    qs = paste0("Date_réception_DPE:[", Date_neufs, "-01-01 TO ", Date_neufs, "-12-31]")
-  )
+# Récupération des logements neufs si le type sélectionné est "neuf" ou "les deux"
+if (type_logement == "neuf" || type_logement == "les deux") {
+  Date_neufs <- 2021
+  base_url_neufs <- "https://data.ademe.fr/data-fair/api/v1/datasets/dpe-v2-logements-neufs/lines"
   
-  url_encoded <- modify_url(base_url_neufs, query = params)
-  response <- GET(url_encoded)
-  
-  if (status_code(response) != 200) {
-    stop("Erreur dans la requête : ", status_code(response))
+  repeat {
+    params_neufs <- list(
+      page = 1,
+      size = size,
+      select = "N°DPE,Etiquette_DPE,Date_réception_DPE,Coordonnée_cartographique_Y_(BAN),Coordonnée_cartographique_X_(BAN),Identifiant__BAN,Type_bâtiment,Type_installation_chauffage,Surface_habitable_logement",
+      q = code_postal,
+      q_fields = "Code_postal_(BAN)",
+      qs = paste0("Date_réception_DPE:[", Date_neufs, "-01-01 TO ", Date_neufs, "-12-31]")
+    )
+    
+    url_encoded_neufs <- modify_url(base_url_neufs, query = params_neufs)
+    response_neufs <- GET(url_encoded_neufs)
+    
+    if (status_code(response_neufs) != 200) {
+      stop("Erreur dans la requête : ", status_code(response_neufs))
+    }
+    
+    content_neufs <- fromJSON(rawToChar(response_neufs$content), flatten = FALSE)
+    data_neufs <- content_neufs$result
+    df_neufs <- rbind(df_neufs, data_neufs)
+    
+    Date_neufs <- Date_neufs + 1
+    if (Date_neufs == 2030) break
+    
+    Sys.sleep(1) 
   }
   
-  content <- fromJSON(rawToChar(response$content), flatten = FALSE)
-  data <- content$result
-  df_neufs <- rbind(df_neufs, data)
-  
-  Date_neufs <- Date_neufs + 1
-  if (Date_neufs == 2030) break
-  
-  Sys.sleep(1)  # Pause de 1 seconde entre les requêtes
+  df_neufs$type_logement <- "Neufs"
+  df_neufs$Année_construction <- NA
 }
-df_neufs$type_logement = "Neufs"
-df_neufs$Année_construction = NA
 ```
 
-#Fusion des données
+# Fusion des données
 
 ```{r include=TRUE}
-df_logement <- rbind(df_existants, df_neufs)
+# Fusionner les données si l'utilisateur a choisi "les deux"
+if (type_logement == "les deux") {
+  df_logement <- rbind(df_existants, df_neufs)
+} else if (type_logement == "ancien") {
+  df_logement <- df_existants
+} else {
+  df_logement <- df_neufs
+}
 
 # Nettoyage des données
 df_logement <- df_logement[!is.na(df_logement$`Coordonnée_cartographique_X_(BAN)`) &
                              !is.na(df_logement$`Coordonnée_cartographique_Y_(BAN)`), ]
 ```
-#KPI
 
-##Répartition des logements existants/neufs
+## KPI
 
-```{r}
+### Répartition des logements existants/neufs
+
+```{r echo=FALSE}
 kpi_type <- df_logement %>% 
   group_by(type_logement) %>% 
   summarise(count = n())
@@ -112,45 +133,62 @@ ggplot(kpi_type, aes(x = type_logement, y = count, fill = type_logement)) +
   theme_minimal() +
   labs(title = "Répartition des logements par type", y = "Nombre de logements", x = "")
 ```
-###On observe une plus grosse part de logements Existants que de neufs
 
-##Distribution des étiquettes DPE
+On observe une plus grosse part de logements Existants que de neufs
 
-```{r}
-# Créer une palette de couleurs pour les étiquettes DPE
+### Comparaison des étiquettes DPE en fonction du logement (neuf ou existant)
+
+```{r echo=FALSE}
+# Graphique à barres empilées pour comparer les étiquettes DPE
+ggplot(df_logement, aes(x = Etiquette_DPE, fill = type_logement)) +
+  geom_bar(position = "dodge") + 
+  theme_minimal() +
+  labs(title = "Comparaison des étiquettes DPE entre les logements existants et neufs",
+       x = "Etiquette DPE",
+       y = "Nombre de logements",
+       fill = "Type de logement") +
+  theme(legend.position = "right")
+```
+
+
+On remarque que les logements neufs sont plus souvent d'une bonne DPE par rapport aux logements anciens
+
+### Distribution des étiquettes DPE
+
+```{r echo=FALSE}
+
 colors_dpe <- c(
-  "A" = "#006400",  # Vert foncé
-  "B" = "#32CD32",  # Vert clair
-  "C" = "#ADFF2F",  # Vert jaune
-  "D" = "#FFD700",  # Jaune
-  "E" = "#FFA500",  # Orange
-  "F" = "#FF8C00",  # Orange foncé
-  "G" = "#FF0000"   # Rouge
-)
+  "A" = "#006400",  
+  "B" = "#32CD32",  
+  "C" = "#ADFF2F",  
+  "D" = "#FFD700",  
+  "E" = "#FFA500", 
+  "F" = "#FF8C00", 
+  "G" = "#FF0000")  
 
-# Calcul des KPI pour les étiquettes DPE et garder l'ordre de A à G
+# Calcul des KPI pour les étiquettes DPE 
 kpi_dpe <- df_logement %>% 
   group_by(Etiquette_DPE) %>% 
   summarise(count = n()) %>% 
   arrange(desc(count))
 
-# Transformer la colonne Etiquette_DPE en facteur avec l'ordre souhaité
 kpi_dpe$Etiquette_DPE <- factor(kpi_dpe$Etiquette_DPE, levels = c("G", "F", "E", "D", "C", "B", "A"))
 
-# Visualisation avec barres horizontales et couleurs personnalisées
+# Visualisation avec barres horizontales
 ggplot(kpi_dpe, aes(x = Etiquette_DPE, y = count, fill = Etiquette_DPE)) +
   geom_bar(stat = "identity") +
-  scale_fill_manual(values = colors_dpe) +  # Appliquer les couleurs personnalisées
+  scale_fill_manual(values = colors_dpe) +  
   coord_flip() +  # Faire en sorte que les barres soient horizontales
   theme_minimal() +
   labs(title = "Distribution des étiquettes DPE", y = "Nombre de logements", x = "Etiquette DPE")
 
 ```
-### On remarque que les étiquettes des logements tournent autour de C, D et E
 
-#Calcul de la corrélation entre l'année de construction et l'étiquette DPE
+On remarque que les étiquettes des logements tournent autour de C, D et E
 
-```{r}
+### Calcul de la corrélation entre l'année de construction et l'étiquette DPE
+
+```{r echo=FALSE}
 # Convertir l'étiquette DPE en une variable numérique
 df_existants$DPE_num <- as.numeric(factor(df_existants$Etiquette_DPE, levels = c("A", "B", "C", "D", "E", "F", "G")))
 
@@ -159,11 +197,13 @@ correlation <- cor(df_existants$Année_construction, df_existants$DPE_num, use =
 
 correlation
 ```
-##La corrélation est négative, on en déduit donc que plus un bâtiment est récent, plus son étiquette DPE tend à être meilleure.
-##Avec une valeur aussi faible cela signifie que la date de construction n'est pas ce qui influe le plus sur l'étiquette de DPE. Les matériaux utilisé avant ne sont pas tellement différents d'aujourd'hui.
+La corrélation est négative, on en déduit donc que plus un bâtiment est récent, plus son étiquette DPE tend à être meilleure.
 
-#Répartition des types d'installation de chauffage
-```{r}
+Avec une valeur aussi faible cela signifie que la date de construction n'est pas ce qui influe le plus sur l'étiquette de DPE. Les matériaux utilisé avant ne sont pas tellement différents d'aujourd'hui.
+
+### Répartition des types d'installation de chauffage
+
+```{r echo=FALSE}
 # Calcul de la répartition des types d'installation de chauffage
 kpi_chauffage <- df_logement %>%
   group_by(Type_installation_chauffage) %>%
@@ -171,7 +211,7 @@ kpi_chauffage <- df_logement %>%
   mutate(percentage = round((count / sum(count)) * 100, 2)) %>%
   arrange(desc(count))
 
-# Affichage du KPI
+#Affichage des pourcentages
 print(kpi_chauffage)
 
 # Visualisation de la répartition par type d'installation de chauffage
@@ -184,8 +224,10 @@ ggplot(kpi_chauffage, aes(x = reorder(Type_installation_chauffage, -count), y = 
   theme(legend.position = "none")
 ```
 
-#Corrélation entre le type de chauffage et l'étiquette DPE
-```{r}
+
+### Corrélation entre le type de chauffage et l'étiquette DPE
+
+```{r echo=FALSE}
 
 # Encodage en numerique
 df_existants$Chauffage_code <- as.numeric(as.factor(df_existants$Type_installation_chauffage))
@@ -199,33 +241,42 @@ correlation_chauffage_dpe <- cor(df_existants$Chauffage_code, df_existants$Etiqu
 
 cat("Corrélation entre le type de chauffage et l'étiquette DPE :", correlation_chauffage_dpe, "\n")
 ```
-##Cette corrélation reste assez faible donc on ne peut pas dire que le type d'affichage influe beacoup sur la note du DPE
 
-#Nuage de points des répartitions par surface habitable
+Cette corrélation reste assez faible donc on ne peut pas dire que le type d'affichage influe beacoup sur la note du DPE
 
-```{r}
+### Nuage de points des répartitions par surface habitable
+
+```{r echo=FALSE}
+df_logement_clean <- df_logement %>%
+  filter(!is.na(Etiquette_DPE) & !is.na(Surface_habitable_logement))
+
+df_logement_clean$Etiquette_DPE <- factor(df_logement_clean$Etiquette_DPE, 
+                                           levels = c("A", "B", "C", "D", "E", "F", "G"))
+
 # Créer un nuage de points pour la surface habitable en fonction de l'étiquette DPE
-ggplot(df_logement, aes(x = Etiquette_DPE, 
-                         y = Surface_habitable_logement, 
-                         color = Type_bâtiment)) +
-  geom_point(alpha = 0.6, size = 2) +  # alpha pour la transparence, size pour la taille des points
+ggplot(df_logement_clean, aes(x = Etiquette_DPE, 
+                                y = Surface_habitable_logement, 
+                                color = Type_bâtiment)) +
+  geom_point(alpha = 0.6, size = 2) +
   theme_minimal() +
   labs(title = "Nuage de Points: Surface Habitable par Type de Bâtiment",
        x = "Étiquette DPE",
        y = "Surface Habitable (m²)",
        color = "Type de Bâtiment") +
-  theme(legend.position = "right")  # Positionner la légende à droite
+  theme(legend.position = "right")
 ```
+On remarque que les immeubles voir même les appartements ont plus tendance à avoir une meilleur note de DPE que les maison qui sont elles, beaucoup mieux étalé.
 
-```{r}
+### Corrélation entre l'étiquette de DPE et la surface habitable 
+
+```{r echo=FALSE}
 # Convertir l'étiquette DPE en valeurs numériques
-df_logement$DPE_numeric <- as.numeric(factor(df_logement$Etiquette_DPE, 
+df_logement$DPE_numeric = as.numeric(factor(df_logement$Etiquette_DPE, 
                                               levels = c("A", "B", "C", "D", "E", "F", "G")))
 
 # Calculer la corrélation
-correlation <- cor(df_logement$Surface_habitable_logement, df_logement$DPE_numeric, use = "complete.obs")
+correlation = cor(df_logement$Surface_habitable_logement, df_logement$DPE_numeric, use = "complete.obs")
 print(correlation)
 ```
 
-#Comparaison de l'Étiquette DPE et de la Qualité d'Isolation des Murs
 
