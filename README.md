@@ -15,7 +15,7 @@ Ce projet Shiny permet de visualiser les logements situés en Savoie, France. Le
   
 ### Étapes
 Cloner le repository GitHub sur votre machine locale :
-    git clone https://github.com/iut_sd2_rshiny_enedis/logements-savoie.git  
+    git clone https://github.com/iut_sd2_rshiny_enedis/logements-savoie.git
 Ouvrir le projet R dans RStudio (Projet_R_shinny.Rproj).
 
 Installer les packages nécessaires avec la commande suivante dans R :
