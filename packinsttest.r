@@ -1,8 +1,0 @@
-install.packages('rsconnect')
-install.packages(c('ggplot2', 'shiny'))
-install.packages(shiny)
-install.packages(dplyr)
-install.packages(ggplot2)
-install.packages(DT)
-install.packages(flexdashboard)
-runApp()
