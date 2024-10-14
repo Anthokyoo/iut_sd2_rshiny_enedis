@@ -1,3 +1,6 @@
+# Ajouter un miroir CRAN pour éviter l'erreur sur shinyapps.io
+options(repos = c(CRAN = "https://cran.rstudio.com/"))
+
 install.packages(c('shiny', 'leaflet', 'shinydashboard', 'httr', 'jsonlite', 'ggplot2','leaflet.extras','shinyjs','rsconnect'))
 library(shiny)
 library(leaflet)
