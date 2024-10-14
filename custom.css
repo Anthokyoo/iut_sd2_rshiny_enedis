@@ -1,0 +1,15 @@
+.gras {
+    font-weight: bold; /* Met le texte en gras */
+}
+
+.italique {
+    font-style: italic; /* Met le texte en italique */
+}
+
+.surligne {
+    background-color: yellow; /* Surligne le texte */
+}
+
+.souligne {
+    text-decoration: underline; /* Souligne le texte */
+}
