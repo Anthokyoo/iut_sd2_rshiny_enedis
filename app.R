@@ -180,7 +180,7 @@ ui <- dashboardPage(
                 tags$span(class = "italique", "A à G"), " selon leur consommation d'énergie."),
               p("Rénover les logements pour améliorer leur lettre DPE est crucial pour réduire la consommation d'énergie et lutter contre le changement climatique. Une meilleure performance énergétique permet également de diminuer les factures de chauffage."),
               p("Les utilisateurs peuvent explorer les données, visualiser les logements existants et neufs, et analyser différentes métriques concernant l'énergie."),
-              tags$img(src = "/Savoie_image.jpg", alt = "Image de Savoie", style = "width: 100%; height: auto;")
+              tags$img(src = "Savoie_image.jpg", alt = "Image de Savoie", style = "width: 100%; height: auto;")
       ),
       # Onglet Données avec l'histogramme et la boîte à moustache
       tabItem(tabName = "data",

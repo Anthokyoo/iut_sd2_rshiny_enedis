@@ -5,7 +5,7 @@ account: lucascorompt
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 13004820
-bundleId: 9218357
+bundleId: 9220019
 url: https://lucascorompt.shinyapps.io/iut_sd2_rshiny_enedis/
 version: 1
 asMultiple: FALSE
